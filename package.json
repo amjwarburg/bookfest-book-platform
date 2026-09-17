@@ -1,0 +1,36 @@
+{
+  "name": "bookfest-interactive-tool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "devStart": "nodemon -L server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amjwarburg/bookfest-interactive-tool.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/amjwarburg/bookfest-interactive-tool/issues"
+  },
+  "homepage": "https://github.com/amjwarburg/bookfest-interactive-tool#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bootstrap": "^5.3.8",
+    "dotenv": "^17.4.2",
+    "ejs": "^5.0.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "sqlite3": "^6.0.1",
+    "trig-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

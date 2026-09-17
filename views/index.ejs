@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Portal</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+</head>
+<body>
+    <%- include('layout') %>
+    <div class="homepage-header">
+    <h1><span>Shropshire Bookfest</span> Reading Portal</h1>
+    <p>Welcome to your new favourite story!</p>
+    </div>
+    <main class="homepage-container mt-5">
+        <section class="homepage-card" data-aos="fade-right">
+            <img src="/bookshelf.jpg" alt="A fun cubby book shelf" class="homepage-img">
+            <div>
+                <h3>GATHER</h3>
+                <p>Find <strong>the books you love</strong> and add them to <strong>your bookshelf</strong></p>
+                <a href="/profile" class="btn btn-success">See your books</a>
+            </div>
+        </section>
+
+        <section class="homepage-card" data-aos="fade-left">
+            <img src="/search.jpg" alt="A hand holding a lightbulb" class="homepage-img">
+            <div>
+                <h3>CHOOSE</h3>
+                <p><strong>Locate your next big read</strong> by searching or selecting your mood</p>
+                <a href="/books" class="btn btn-success">Search now</a>
+            </div>
+        </section>
+
+        <section class="homepage-card" data-aos="fade-right">
+            <img src="/children-talking.jpg" alt="Children enjoying reading a book together" class="homepage-img">
+            <div>
+                <h3>CHAT</h3>
+                <p>Discuss your <strong>favourite books with friends</strong></p>
+                <a href="/reviews" class="btn btn-success">Write a review</a>
+            </div>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            offset: 200,
+            duration: 800
+        });
+    </script>
+</body>
+</html>

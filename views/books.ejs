@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Books</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+
+      // I learned about SweetALert2 from Gemini. I used it to make several popups look nicer.
+        document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.get('error') === 'not_admin') {
+                Swal.fire({
+                    title: 'Insufficient Permission',
+                    text: 'Please log in as an admin to access this',
+                    icon: 'warning',
+                    confirmButtonText: 'Okay!',
+                    confirmButtonColor: '#e0424e',
+                });
+            window.history.replaceState(null, "", window.location.pathname);
+        }})
+    </script>
+  </head>  
+  <body>
+    <%- include('layout'); %>
+    <nav class="navbar navbar-light" style="background-color: #32b4a2;">
+      <form class="form-inline">
+        <div class="search-bar-container">
+        <input class="form-control mr-sm-2" id="book-search" type="search" placeholder="Search" aria-label="Search">
+        <div class="dropdown">
+        <button class="btn genre-dropdown-toggle dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Genres
+        </button>
+        <div class="dropdown-menu genre-container" aria-labelledby="dropdownMenuButton">
+          <button class="dropdown-item all-genres-button" type="button">All</button>
+          <div class="dropdown-divider"></div>
+          <% for (let genre of genres) { %>
+            <button type="button" class="dropdown-item genre-button" data-genre-id="<%= genre.id %>">
+              <%= genre.name %>
+            </button>
+          <% } %>
+        </div>
+        </div>
+        <div class="dropdown">
+        <button class="btn dropdown-toggle mood-dropdown-toggle" type="button" id="moodDropdownButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Moods
+        </button>
+        <div class="dropdown-menu" aria-labelledby="moodDropdownButton">
+          <button class="dropdown-item all-moods-button" type="button">All</button>
+          <div class="dropdown-divider"></div>
+          <% for (let mood of moods) { %>
+            <button type="button" class="dropdown-item mood-button" data-mood-id="<%= mood.id %>">
+              <%= mood.emoji %> <%= mood.name %>
+            </button>
+          <% } %>
+        </div>
+        </div>
+
+        <% if (user && user.is_admin === 1) { %>
+        <a href="/books/manage" class="btn btn-dark">Manage</a>
+        <% } %>
+        </div>
+      </form>
+    </nav>
+    <div class="books-grid" id="books-grid">
+        <% for (let book of books) { %>
+            <%# userBookStatuses maps book_id to status ('read' | 'not read'); undefined means not yet added %>
+            <% const bookStatus = userBookStatuses[book.id]; %>
+            <div class="book-card">
+                <a href="/books/info/<%= book.id %>">
+                  <img class="book-card-cover" src="<%= book.cover_image %>">
+                </a>
+                <% if (user) { %>
+                <%# The form's action is read by toggle.js to build the POST URL %>
+                <form action="/books/<%= book.id %>" method="POST" class="add-book-form">
+                  <%# Claude Code added this hidden field; toggle.js also sends the token as a header for the AJAX path %>
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <%# 'read' → teal (.active), 'not read' → red (.not-read), unadded → no colour class %>
+                  <button
+                    type="submit"
+                    class="book-card-middle prevent-select<%= bookStatus === 'read' ? ' active' : bookStatus === 'not read' ? ' not-read' : '' %>">
+                    <%# Label reflects current status: unadded → 'Add!', not read → 'Not Read', read → 'Read ✅' %>
+                    <%= bookStatus === 'read' ? 'Read ✅' : bookStatus === 'not read' ? 'Not Read' : 'Add!' %>
+                  </button>
+                </form>
+                <% } %>
+                <h5 class="book-card-title book-card-text"><%= book.title %></h5>
+                <h6 class="book-card-author book-card-text"><%= book.author%></h6>
+            </div>
+        <% } %>
+    </div>
+  </body>
+  <script>
+    // Claude Code updated this to expose userBookStatuses (book_id → status) instead of a flat Set.
+    // toggle.js and search.js read and write this object to keep button labels in sync across searches.
+    const userBookStatuses = <%- JSON.stringify(userBookStatuses) %>;
+    const isLoggedIn = <%= user ? 'true' : 'false' %>;
+  </script>
+  <script src="/js/search.js"></script>
+  <script src="/js/toggle.js"></script>
+</html>

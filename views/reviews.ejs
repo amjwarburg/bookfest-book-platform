@@ -1,0 +1,193 @@
+<%# Claude Code implemented a good portion of the functionality of this view, but I instructed it
+carefully and it was building on the existing structure of the website, which I had spent the past
+few weeks working on %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reviews</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .login-link {
+      font-weight: bold;
+      color: #e0424e;
+      text-decoration: none;
+    }
+    .login-link:hover {
+      color: #32b4a2;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'too_short') {
+        Swal.fire({
+          title: 'Review too short',
+          text: 'Your review needs to be at least 50 words. Keep going — you\'ve got more to say!',
+          icon: 'warning',
+          confirmButtonText: 'Okay!',
+          confirmButtonColor: '#e0424e',
+        });
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    });
+  </script>
+</head>
+<body>
+  <%- include('layout') %>
+
+  <nav class="navbar navbar-light" style="background-color: #32b4a2;">
+    <span class="fw-bold ms-3" style="color: white; font-size: 1.1rem;">Reviews</span>
+  </nav>
+
+  <div class="container mt-4">
+
+    <% if (user && userReadBooks.length > 0) { %>
+    <div class="mb-4 text-center">
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#reviewModal">Write a Review</button>
+    </div>
+    <% } else if (user) { %>
+    <p class="text-muted mb-4">Mark books as read to leave a review.</p>
+    <% } else { %>
+    <p class="text-muted mb-4"><a href="/users/login" class="login-link">Log in</a> to write a review.</p>
+    <% } %>
+
+    <% if (reviews.length === 0) { %>
+      <p class="text-muted fst-italic">No reviews yet — be the first!</p>
+    <% } else { %>
+      <div class="row g-4">
+        <% for (let review of reviews) { %>
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                  <img src="<%= review.cover_image %>" alt="<%= review.title %>" style="width: 55px; border-radius: 4px; flex-shrink: 0;">
+                  <div>
+                    <a href="/books/info/<%= review.book_id %>" class="fw-bold text-decoration-none" style="color: #e0424e;"><%= review.title %></a>
+                    <div class="text-muted small">by <%= review.firstName %></div>
+                    <% if (review.review_created_at) { %>
+                      <div class="text-muted" style="font-size: 0.75rem;">
+                        <%= new Date(review.review_created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+                <p class="card-text" style="white-space: pre-wrap"><%= review.review_text %></p>
+              </div>
+              <% if (user && Number(user.id) === Number(review.user_id)) { %>
+              <div class="card-footer">
+                <button type="button" class="btn btn-link btn-sm p-0 edit-review-btn"
+                  data-book-id="<%= review.book_id %>">Edit my review</button>
+              </div>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+  </div>
+
+  <% if (user && userReadBooks.length > 0) { %>
+  <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">Write a Review</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="review-form" method="POST" action="">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="mb-3">
+              <select id="book-select" class="form-select">
+                <option value="">— Choose a book you've read —</option>
+                <% for (let book of userReadBooks) { %>
+                  <option value="<%= book.id %>"><%= book.title %></option>
+                <% } %>
+              </select>
+            </div>
+            <div class="mb-3">
+              <textarea id="review-textarea" name="review_text" class="form-control" rows="5" placeholder="What did you think?"></textarea>
+            </div>
+            <small id="word-count" class="d-block mb-3 text-muted">0 / 50 words minimum</small>
+            <button type="submit" id="submit-btn" class="btn btn-primary me-2" disabled>Submit Review</button>
+            <button type="button" id="delete-btn" class="btn btn-outline-danger" style="display:none;">Delete Review</button>
+          </form>
+          <form id="delete-form" method="POST" action="" style="display:none;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
+  <% if (user && userReadBooks.length > 0) { %>
+  <script>
+    const userReadBooks = <%- JSON.stringify(userReadBooks) %>;
+    const bookSelect = document.getElementById('book-select');
+    const reviewTextarea = document.getElementById('review-textarea');
+    const reviewForm = document.getElementById('review-form');
+    const deleteForm = document.getElementById('delete-form');
+    const deleteBtn = document.getElementById('delete-btn');
+    const submitBtn = document.getElementById('submit-btn');
+
+    const MIN_WORDS = 50;
+    const wordCountEl = document.getElementById('word-count');
+
+    function countWords(text) {
+      return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+
+    function updateSubmitState() {
+      const words = countWords(reviewTextarea.value);
+      const bookSelected = bookSelect.value !== '';
+      wordCountEl.textContent = `${words} / ${MIN_WORDS} words minimum`;
+      wordCountEl.style.color = words >= MIN_WORDS ? '#198754' : '';
+      submitBtn.disabled = !bookSelected || words < MIN_WORDS;
+    }
+
+    reviewTextarea.addEventListener('input', updateSubmitState);
+
+    bookSelect.addEventListener('change', function () {
+      const bookId = this.value;
+      if (!bookId) {
+        deleteBtn.style.display = 'none';
+        reviewTextarea.value = '';
+        updateSubmitState();
+        return;
+      }
+      const book = userReadBooks.find(b => b.id == bookId);
+      reviewTextarea.value = book?.review_text || '';
+      reviewForm.action = `/reviews/${bookId}`;
+      deleteForm.action = `/reviews/${bookId}/delete`;
+      if (book?.review_text) {
+        deleteBtn.style.display = '';
+        submitBtn.textContent = 'Update Review';
+      } else {
+        deleteBtn.style.display = 'none';
+        submitBtn.textContent = 'Submit Review';
+      }
+      updateSubmitState();
+    });
+
+    deleteBtn.addEventListener('click', () => deleteForm.submit());
+
+    document.querySelectorAll('.edit-review-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        bookSelect.value = this.dataset.bookId;
+        bookSelect.dispatchEvent(new Event('change'));
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('reviewModal')).show();
+      });
+    });
+  </script>
+  <% } %>
+</body>
+</html>

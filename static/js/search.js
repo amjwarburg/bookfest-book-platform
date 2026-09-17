@@ -1,0 +1,154 @@
+let timeout;
+let selectedGenre = null;
+let selectedMood = null; // Claude Code added: tracks the active mood filter
+let currentQuery = "";
+
+const display = (data) => {
+  if (data.length == 0) {
+    const createNoResults = document.createElement("h3");
+    const booksGrid = document.getElementById("books-grid");
+    createNoResults.classList.add("no-results");
+    createNoResults.textContent = "No Books Found";
+    booksGrid.append(createNoResults);
+  }
+};
+
+// Define a function for rendering books
+const renderBooks = (bookArray) => {
+  const booksGrid = document.getElementById("books-grid");
+  bookArray.forEach((book) => {
+    const createBookCard = document.createElement("div");
+    const createBookTitle = document.createElement("h5");
+    const createBookAuthor = document.createElement("p");
+    const createBookCover = document.createElement("img");
+
+    createBookCard.classList.add("book-card");
+    createBookCover.classList.add("book-card-cover");
+    createBookAuthor.classList.add("book-card-author");
+    createBookTitle.classList.add("book-card-title");
+    createBookCover.src = book.cover_image;
+    createBookTitle.textContent = book.title;
+    createBookAuthor.textContent = book.author;
+
+    // Claude Code added this link so cover images in search results navigate to the info page, matching books.ejs
+    const createBookLink = document.createElement("a");
+    createBookLink.href = `/books/info/${book.id}`;
+    createBookLink.append(createBookCover);
+    createBookCard.append(createBookLink, createBookTitle, createBookAuthor);
+
+    // Claude Code updated the Add button logic to use userBookStatuses (book_id → status map)
+    if (typeof isLoggedIn !== "undefined" && isLoggedIn) {
+      // Check the in-memory map populated from the server so the button starts in the right state
+      const bookStatus =
+        typeof userBookStatuses !== "undefined"
+          ? userBookStatuses[book.id]
+          : null;
+      const createForm = document.createElement("form");
+      const createBookMiddle = document.createElement("button");
+
+      // The form action must be set so toggle.js can POST to the correct endpoint
+      createForm.classList.add("add-book-form");
+      createForm.action = `/books/${book.id}`;
+      createForm.method = "POST";
+      createBookMiddle.classList.add("book-card-middle", "prevent-select");
+      createBookMiddle.type = "submit";
+      // Label and colour reflect current status: unadded → 'Add!', not read → red, read → teal
+      if (bookStatus === "read") {
+        createBookMiddle.textContent = "Read ✅";
+        createBookMiddle.classList.add("active");
+      } else if (bookStatus === "not read") {
+        createBookMiddle.textContent = "Not Read";
+        createBookMiddle.classList.add("not-read");
+      } else {
+        createBookMiddle.textContent = "Add!";
+      }
+
+      createForm.append(createBookMiddle);
+      createBookCard.append(createForm);
+    }
+
+    booksGrid.append(createBookCard);
+  });
+};
+
+// Fetch books matching both currentQuery and selectedGenre, then re-render the grid
+const fetchAndRender = async () => {
+  const params = new URLSearchParams();
+  if (currentQuery.length > 1) params.set("q", currentQuery);
+  if (selectedGenre) params.set("genre", selectedGenre);
+  if (selectedMood) params.set("mood", selectedMood); // Claude Code added: send mood param to API
+  const response = await fetch("/books/api/books?" + params.toString());
+  const data = await response.json();
+  document.getElementById("books-grid").innerHTML = "";
+  renderBooks(data);
+  display(data);
+};
+
+// Assign the search bar to a variable
+const searchInput = document.querySelector("#book-search");
+
+// Listen for typing; debounce so we don't fire on every keystroke
+searchInput.addEventListener("input", () => {
+  currentQuery = searchInput.value;
+
+  // Update the URL
+  const newURL =
+    window.location.pathname + "?q=" + encodeURIComponent(currentQuery);
+  window.history.replaceState(null, "", newURL);
+
+  // I learned about debouncing from Gemini and YouTube and this is how I implemented it:
+  clearTimeout(timeout);
+  timeout = setTimeout(fetchAndRender, 300);
+});
+
+const genreButtons = document.querySelectorAll("[data-genre-id]");
+const moodButtons = document.querySelectorAll("[data-mood-id]");
+const allMoodsButton = document.querySelector(".all-moods-button");
+const allGenresButton = document.querySelector(".all-genres-button");
+
+// Highlight the active genre button and clear the rest
+const setActiveGenreButton = (activeBtn) => {
+  allGenresButton.classList.remove("genre-active");
+  genreButtons.forEach((btn) => btn.classList.remove("genre-active"));
+  if (activeBtn) activeBtn.classList.add("genre-active");
+};
+
+// Filter books with genre buttons
+genreButtons.forEach((genreButton) => {
+  genreButton.addEventListener("click", () => {
+    selectedGenre = genreButton.dataset.genreId;
+    setActiveGenreButton(genreButton);
+    fetchAndRender();
+  });
+});
+
+// Filter books with 'All' genres button
+allGenresButton.addEventListener("click", () => {
+  selectedGenre = null;
+  setActiveGenreButton(allGenresButton);
+  fetchAndRender();
+});
+
+// Highlight the active mood button and clear the rest
+const setActiveMoodButton = (activeBtn) => {
+  allMoodsButton.classList.remove("mood-active");
+  moodButtons.forEach((btn) => btn.classList.remove("mood-active"));
+  if (activeBtn) activeBtn.classList.add("mood-active");
+};
+
+// Filter books with mood buttons
+// Claude Code fixed dataset.genreId → dataset.moodId (was reading the wrong attribute)
+moodButtons.forEach((moodButton) => {
+  moodButton.addEventListener("click", () => {
+    selectedMood = moodButton.dataset.moodId;
+    setActiveMoodButton(moodButton);
+    fetchAndRender();
+  });
+});
+
+// Filter books with 'All' moods button
+allMoodsButton.addEventListener("click", () => {
+  selectedMood = null;
+  setActiveMoodButton(allMoodsButton);
+  fetchAndRender();
+});
