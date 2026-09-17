@@ -25,8 +25,8 @@
     "ejs": "^5.0.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "multer": "^2.1.1",
-    "nodemailer": "^8.0.7",
+    "multer": "^2.4.0",
+    "nodemailer": "^8.0.11",
     "sqlite3": "^6.0.1",
     "trig-js": "^4.2.0"
   },
